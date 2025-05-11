@@ -1,0 +1,688 @@
+body {
+      background: url('front.jpg!d') no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    
+    header {
+      padding: 20px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .main-title {
+      font-size: 60px;
+      margin-bottom: 15px;
+    }
+    
+    .kisan-button {
+      background-color: #FF5722;
+      border: none;
+      color: white;
+      padding: 15px 32px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 20px;
+      margin: 10px 0;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: all 0.3s;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+      }
+      100% {
+        transform: scale(1);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      }
+    }
+    
+    .kisan-button:hover {
+      background-color: #E64A19;
+      transform: scale(1.1);
+    }
+    
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 30px;
+    }
+    
+    .prediction-panel {
+      background-color: rgba(0, 100, 0, 0.8);
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 20px;
+      width: 80%;
+    }
+    
+    /* Suggestion Speak Button Styles - UPDATED */
+    .speak-button {
+      background-color: #FFC107;
+      border: none;
+      color: #333;
+      padding: 12px 25px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      font-size: 18px;
+      margin: 5px 0 15px 0;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: all 0.3s;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      font-weight: bold;
+      animation: highlight 1.5s infinite alternate;
+    }
+    
+    @keyframes highlight {
+      from {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      }
+      to {
+        box-shadow: 0 4px 15px rgba(255,255,0,0.5);
+      }
+    }
+    
+    .speak-button:hover {
+      background-color: #FFD54F;
+      transform: scale(1.05);
+    }
+    
+    .speak-button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+      box-shadow: none;
+      animation: none;
+    }
+    
+    .speak-button svg {
+      margin-right: 8px;
+    }
+    
+    /* NEW CSS: Speech control buttons container and specific button styles */
+    .speech-control-buttons {
+      display: flex;
+      gap: 10px;
+      margin: 5px 0 15px 0;
+    }
+    
+    .start-speak {
+      background-color: #FFC107;
+      color: #333;
+    }
+    
+    .pause-speak {
+      background-color: #FF5722;
+      color: white;
+    }
+    /* END NEW CSS */
+    
+    /* Kisan GPT Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.7);
+      overflow: auto;
+    }
+    
+    .modal-content {
+      background-color: rgba(255, 255, 255, 0.95);
+      margin: 5% auto;
+      padding: 20px;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 800px;
+      color: #333;
+      position: relative;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    }
+    
+    .close-button {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      color: #333;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .close-button:hover {
+      color: #f44336;
+    }
+    
+    /* Voice Controls Styling */
+    .voice-controls {
+      background: #e8f5e9;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+      text-align: center;
+    }
+    
+    .voice-status {
+      margin-top: 10px;
+      font-weight: bold;
+      color: #4CAF50;
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    
+    .status-active {
+      background-color: #4CAF50;
+      animation: pulse 1.5s infinite;
+    }
+    
+    .status-listening {
+      background-color: red;
+      animation: pulse 1s infinite;
+    }
+    
+    .status-inactive {
+      background-color: #9e9e9e;
+    }
+    
+    .toggle-container {
+      margin-top: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+    
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .slider {
+      background-color: #4CAF50;
+    }
+    
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    
+    .toggle-label {
+      margin-left: 10px;
+      font-weight: bold;
+    }
+    
+    .control-buttons {
+      margin: 15px 0;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    .control-btn {
+      padding: 8px 15px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    
+    .control-btn:hover {
+      background-color: #45a049;
+    }
+    
+    .pause-btn {
+      background-color: #ff9800;
+    }
+    
+    .pause-btn:hover {
+      background-color: #e68a00;
+    }
+    
+    .logo {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    
+    .app-title {
+      text-align: center;
+      margin-top: 0;
+      color: #333;
+    }
+    
+    .chat-container {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+      background-color: #f9f9f9;
+    }
+    
+    .chat-history {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+    }
+    
+    .chat-message {
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+    
+    .farmer {
+      background-color: #e3f2fd;
+      text-align: right;
+    }
+    
+    .assistant {
+      background-color: #f1f8e9;
+    }
+    
+    .response {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      min-height: 50px;
+    }
+    
+    .chat-input {
+      display: flex;
+      margin-top: 20px;
+    }
+    
+    #query-input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .language-select {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-right: 10px;
+    }
+    /* Location Permission Banner */
+.location-permission-banner {
+  background-color: rgba(33, 150, 243, 0.9);
+  color: white;
+  padding: 15px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+.location-permission-banner button {
+  background-color: white;
+  color: #0D47A1;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.location-permission-banner button:hover {
+  background-color: #f0f0f0;
+}
+
+/* Weather Widget Enhancements */
+.weather-info {
+  transition: all 0.3s ease;
+}
+
+.weather-info:hover {
+  transform: scale(1.05);
+}
+
+.weather-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.weather-card::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  background: linear-gradient(45deg, rgba(0,0,0,0.1), rgba(255,255,255,0.1));
+  z-index: -1;
+  filter: blur(5px);
+}
+
+.weather-icon {
+  margin-right: 10px;
+  width: 50px;
+  height: 50px;
+}
+
+/* Crop Recommendations */
+.crop-recommendations {
+  margin-top: 20px;
+  animation: fadeIn 1s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.crop-item {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.crop-item:hover {
+  background-color: rgba(255,255,255,0.3);
+  transform: translateY(-2px);
+}
+
+/* Location Display Animation */
+.location-text {
+  position: relative;
+  animation: pulse 2s infinite alternate;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 87, 34, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(255, 87, 34, 0);
+  }
+}
+
+/* Location Services Status Indicators */
+.location-status-active {
+  border-left: 4px solid #4CAF50;
+  padding-left: 10px;
+}
+
+.location-status-error {
+  border-left: 4px solid #F44336;
+  padding-left: 10px;
+}
+
+.location-status-loading {
+  border-left: 4px solid #2196F3;
+  padding-left: 10px;
+  animation: statusPulse 1s infinite alternate;
+}
+
+@keyframes statusPulse {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
+}
+
+/* Local Weather Loading State */
+.weather-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+}
+
+.weather-loading::after {
+  content: "";
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 600px) {
+  .location-text {
+    font-size: 14px;
+  }
+  
+  .weather-card {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .weather-details {
+    margin-top: 10px;
+  }
+  
+  .crop-list {
+    justify-content: center;
+  }
+}
+.moisture-modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.7);
+    }
+    
+.moisture-modal-content {
+      background: linear-gradient(135deg, #76b852, #8DC26F);
+      margin: 10% auto;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+      width: 80%;
+      max-width: 600px;
+      color: white;
+      position: relative;
+    }
+    
+    .moisture-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.3);
+      padding-bottom: 10px;
+    }
+    
+    .moisture-modal-header h2 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+    }
+    
+    .moisture-modal-header h2 svg {
+      margin-right: 10px;
+    }
+    
+    .close-moisture-modal {
+      color: white;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .moisture-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      background-color: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    
+    .moisture-table th, .moisture-table td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .moisture-table th {
+      background-color: rgba(0,0,0,0.2);
+      font-weight: bold;
+    }
+    
+    .moisture-table tr:hover {
+      background-color: rgba(255,255,255,0.1);
+    }
+    
+    .moisture-info {
+      background-color: rgba(0,0,0,0.1);
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+    
+    .moisture-level-indicator {
+      height: 24px;
+      background: linear-gradient(90deg, #ff6b6b 0%, #feca57 50%, #54a0ff 100%);
+      border-radius: 12px;
+      margin: 10px 0;
+      position: relative;
+    }
+    
+    .moisture-marker {
+      position: absolute;
+      width: 4px;
+      height: 24px;
+      background-color: black;
+      transform: translateX(-2px);
+    }
+    
+    .soil-moisture-button {
+      background-color: #1e88e5;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      transition: all 0.3s;
+      margin-left: 15px;
+    }
+    
+    .soil-moisture-button:hover {
+      background-color: #1565c0;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .soil-moisture-button svg {
+      margin-right: 8px;
+    }
+    
+    /* Loading animation for moisture data */
+    .moisture-loading {
+      display: flex;
+      justify-content: center;
+      padding: 40px 0;
+    }
+    
+    .moisture-loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 30px;
+      color: rgba(255,255,255,0.8);
+    }
+    
+    /* Alert for error messages */
+    .moisture-alert {
+      background-color: rgba(244, 67, 54, 0.9);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      display: none;
+    }
