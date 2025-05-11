@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Krishi Mitra</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="https://generativelanguage.googleapis.com/v1beta/models"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1 class="main-title">Krishi Mitra</h1>
+    <button id="openKisanGPT" class="kisan-button">🎤 Launch Kisan Voice Assistant</button>
+    <!-- Add Soil Moisture Button here, right after the title -->
+    <div class="header-buttons">
+      <button id="openSoilMoistureBtn" class="soil-moisture-button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+        </svg>
+        मिट्टी की नमी (Soil Moisture)
+      </button>
+    </div>
+  </header>
+  <div id="moistureModal" class="moisture-modal">
+    <div class="moisture-modal-content">
+      <div class="moisture-modal-header">
+        <h2>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+          </svg>
+          मिट्टी की नमी की जानकारी (Soil Moisture Data)
+        </h2>
+        <span class="close-moisture-modal" id="closeMoistureModal">&times;</span>
+      </div>
+      
+      <div class="moisture-alert" id="moistureAlert">
+        Error message will appear here
+      </div>
+      
+      <div id="moistureContent">
+        <!-- Content will be loaded here -->
+        <div class="moisture-loading" id="moistureLoading">
+          <div class="moisture-loading-spinner"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <main>
+    <div class="prediction-panel">
+      <h2>🌿 Predicted Disease:</h2>
+      <p id="prediction" style="font-size: 24px;">Loading...</p>
+      <h2>🧠 AI Suggestions:</h2>
+
+      <div class="speech-control-buttons">
+        <button id="startSpeakBtn" class="speak-button start-speak" disabled>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+          सुझाव सुनें (Listen)
+        </button>
+        
+        <button id="pauseSpeakBtn" class="speak-button pause-speak" style="display:none;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="6" y="4" width="4" height="16"></rect>
+            <rect x="14" y="4" width="4" height="16"></rect>
+          </svg>
+          रोकें (Pause)
+        </button>
+      </div>
+
+      <p id="suggestion" style="font-size: 20px;">Fetching from Gemini...</p>
+    </div>
+  </main>
+  
+  <div id="kisanModal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" id="closeModal">&times;</span>
+      
+      <div class="logo">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="38" fill="#e8f5e9" stroke="#4CAF50" stroke-width="2"/>
+          <path d="M40,20 Q55,30 40,60 Q25,30 40,20" fill="#4CAF50"/>
+          <circle cx="40" cy="25" r="5" fill="#81C784"/>
+          <path d="M30,45 Q40,55 50,45" stroke="#2E7D32" stroke-width="2" fill="none"/>
+        </svg>
+      </div>
+      
+      <h1 class="app-title">किसान GPT</h1>
+      <p style="text-align: center; color: #333;">आपका AI-संचालित कृषि सहायक</p>
+      
+      <div class="voice-controls">
+        <h2 style="color: #333;">स्वचालित वॉइस मोड</h2>
+        <p style="font-style: italic; color: #666;">बस "किसान जीपीटी" या "किसान" या "kisan" बोलें और मैं आपका प्रश्न सुनूंगा</p>
+        
+        <div class="voice-status">
+          <span class="status-indicator status-active" id="status-icon"></span>
+          <span id="voice-status">वेक वर्ड का इंतज़ार कर रहा हूँ</span>
+        </div>
+        
+        <div class="toggle-container">
+          <label class="toggle-switch">
+            <input type="checkbox" id="voice-toggle" checked>
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-label">वॉइस मोड चालू है</span>
+        </div>
+        
+        <div class="control-buttons">
+          <button id="pauseBtn" class="control-btn pause-btn">⏸️ Pause</button>
+          <button id="resumeBtn" class="control-btn" disabled>▶️ Resume</button>
+        </div>
+      </div>
+      
+      <div class="chat-container">
+        <div class="chat-history" id="chat-history"></div>
+        <div class="response" id="response-area">यहां आपका उत्तर दिखाई देगा...</div>
+        <div class="chat-input">
+          <select id="language-select" class="language-select">
+            <option value="Hindi">हिंदी</option>
+            <option value="English">English</option>
+            <option value="Garhwali">गढ़वाली</option>
+            <option value="Punjabi">ਪੰਜਾਬੀ</option>
+            <option value="Tamil">தமிழ்</option>
+            <option value="Telugu">తెలుగు</option>
+            <option value="Marathi">मराठी</option>
+          </select>
+          <input type="text" id="query-input" placeholder="फसलों, मौसम, कीटों के बारे में पूछें...">
+          <button id="askBtn" class="control-btn">पूछें</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+
+let userLocation = {
+  latitude: null,
+  longitude: null,
+  locality: null,
+  state: null,
+  country: null,
+  lastUpdated: null
+};
+
+function initLocationServices() {
+  if (!navigator.geolocation) {
+    console.error("Geolocation is not supported by this browser");
+    updateLocationStatus("Location services not available", "error");
+    return;
+  }
+  getLocation();
+  setInterval(getLocation, 30 * 60 * 1000);
+}
+
+function getLocation() {
+  updateLocationStatus("Detecting your location...", "loading");
+  
+  const options = {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 15 * 60 * 1000 
+  };
+  
+  navigator.geolocation.getCurrentPosition(
+    position => processPosition(position),
+    handleLocationError,
+    options
+  );
+}
+
+function processPosition(position) {
+  const { latitude, longitude } = position.coords;
+  userLocation.latitude = latitude;
+  userLocation.longitude = longitude;
+  userLocation.lastUpdated = new Date();
+  console.log(`Location detected: ${latitude}, ${longitude}`);
+  updateLocationStatus(`Coordinates: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, "success");
+  reverseGeocode(latitude, longitude);
+  getLocalWeather(latitude, longitude);
+  getLocalCropRecommendations(latitude, longitude);
+}
+
+function handleLocationError(error) {
+  let message;
+  
+  switch(error.code) {
+    case error.PERMISSION_DENIED:
+      message = "User denied the request for location access";
+      break;
+    case error.POSITION_UNAVAILABLE:
+      message = "Location information is unavailable";
+      break;
+    case error.TIMEOUT:
+      message = "The request to get user location timed out";
+      break;
+    default:
+      message = "An unknown error occurred while retrieving location";
+  }
+  
+  console.error("Location error:", message);
+  updateLocationStatus(message, "error");
+}
+
+async function reverseGeocode(latitude, longitude) {
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
+      headers: {
+        'User-Agent': 'EcogenZ-AgricultureApp/1.0'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Geocoding failed with status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    userLocation.locality = data.address.village || data.address.town || data.address.city || 'Unknown';
+    userLocation.state = data.address.state || 'Unknown';
+    userLocation.country = data.address.country || 'Unknown';
+    
+    console.log(`Location resolved: ${userLocation.locality}, ${userLocation.state}, ${userLocation.country}`);
+    updateLocationUI();
+    if (data.address.country === "India") {
+      if (languageSelect && languageSelect.value !== "Hindi") {
+        languageSelect.value = "Hindi";
+      }
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Reverse geocoding error:", error);
+    updateLocationStatus("Couldn't resolve location name", "warning");
+    return null;
+  }
+}
+
+function updateLocationUI() {
+  let locationDisplay = document.getElementById('location-display');
+  if (!locationDisplay) {
+    locationDisplay = document.createElement('div');
+    locationDisplay.id = 'location-display';
+    locationDisplay.className = 'location-info';
+    const mainTitle = document.querySelector('.main-title');
+    if (mainTitle && mainTitle.parentNode) {
+      mainTitle.parentNode.insertBefore(locationDisplay, mainTitle.nextSibling);
+    }
+  }
+  if (userLocation.locality && userLocation.state) {
+    locationDisplay.innerHTML = `
+      <div class="location-text">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+          <circle cx="12" cy="10" r="3"></circle>
+        </svg>
+        ${userLocation.locality}, ${userLocation.state}
+      </div>
+    `;
+  } else {
+    locationDisplay.innerHTML = `
+      <div class="location-text">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+          <circle cx="12" cy="10" r="3"></circle>
+        </svg>
+        Location: Detecting...
+      </div>
+    `;
+  }
+}
+
+function updateLocationStatus(message, status = "info") {
+  console.log(`Location status: ${message} (${status})`);
+
+  let statusElement = document.getElementById('location-status');
+  if (!statusElement) {
+    statusElement = document.createElement('div');
+    statusElement.id = 'location-status';
+    statusElement.style.cssText = 'font-size: 12px; margin-top: 5px; opacity: 0.8;';
+    const locationDisplay = document.getElementById('location-display');
+    if (locationDisplay) {
+      locationDisplay.appendChild(statusElement);
+    }
+  }
+  statusElement.textContent = message;
+
+  switch(status) {
+    case "success":
+      statusElement.style.color = "#4CAF50";
+      break;
+    case "error":
+      statusElement.style.color = "#F44336";
+      break;
+    case "warning":
+      statusElement.style.color = "#FF9800";
+      break;
+    case "loading":
+      statusElement.style.color = "#2196F3";
+      break;
+    default:
+      statusElement.style.color = "#FFFFFF";
+  }
+}
+
+async function getLocalWeather(latitude, longitude) {
+  try {
+
+    const API_KEY = "YOUR_OPENWEATHERMAP_API_KEY"; 
+    const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${API_KEY}`);
+    
+    if (!response.ok) {
+      throw new Error(`Weather API failed with status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Process weather data
+    const weatherInfo = {
+      temperature: data.main.temp,
+      humidity: data.main.humidity,
+      windSpeed: data.wind.speed,
+      description: data.weather[0].description,
+      icon: data.weather[0].icon
+    };
+    
+    console.log("Weather data:", weatherInfo);
+    
+    // Update weather UI
+    updateWeatherUI(weatherInfo);
+    
+    return weatherInfo;
+  } catch (error) {
+    console.error("Weather API error:", error);
+    return null;
+  }
+}
+
+// Update weather UI
+function updateWeatherUI(weatherInfo) {
+  if (!weatherInfo) return;
+  
+  // Create or get weather display element
+  let weatherDisplay = document.getElementById('weather-display');
+  if (!weatherDisplay) {
+    weatherDisplay = document.createElement('div');
+    weatherDisplay.id = 'weather-display';
+    weatherDisplay.className = 'weather-info';
+    
+    // Add to header after location display
+    const header = document.querySelector('header');
+    if (header) {
+      header.appendChild(weatherDisplay);
+    }
+  }
+  
+  // Update content
+  weatherDisplay.innerHTML = `
+    <div class="weather-card">
+      <img src="https://openweathermap.org/img/wn/${weatherInfo.icon}@2x.png" alt="${weatherInfo.description}">
+      <div class="weather-details">
+        <div class="temperature">${weatherInfo.temperature.toFixed(1)}°C</div>
+        <div class="description">${weatherInfo.description}</div>
+        <div class="extra-info">
+          Humidity: ${weatherInfo.humidity}% | Wind: ${weatherInfo.windSpeed} m/s
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Get crop recommendations for the area
+async function getLocalCropRecommendations(latitude, longitude) {
+  try {
+    // This function would ideally call your backend API that analyzes soil, climate data
+    // For now, we'll just show a placeholder based on rough regional data
+    
+    // India crop recommendations by region (simplified)
+    const regionalCrops = {
+      "North India": ["Wheat", "Rice", "Maize", "Mustard"],
+      "South India": ["Rice", "Coconut", "Spices", "Millets"],
+      "East India": ["Rice", "Jute", "Tea", "Maize"],
+      "West India": ["Cotton", "Groundnut", "Jowar", "Bajra"],
+      "Central India": ["Soybean", "Wheat", "Pulses", "Cotton"],
+      "Northeast India": ["Rice", "Tea", "Bamboo", "Fruits"]
+    };
+    
+    // Very rough region determination based on coordinates (simplified)
+    let region = "North India"; // Default
+    
+    if (userLocation.state) {
+      // Simple mapping of states to regions
+      const stateToRegion = {
+        "Punjab": "North India",
+        "Haryana": "North India",
+        "Uttar Pradesh": "North India",
+        "Rajasthan": "North India",
+        "Tamil Nadu": "South India",
+        "Kerala": "South India",
+        "Karnataka": "South India",
+        "Andhra Pradesh": "South India",
+        "Telangana": "South India",
+        "West Bengal": "East India",
+        "Odisha": "East India",
+        "Bihar": "East India",
+        "Jharkhand": "East India",
+        "Gujarat": "West India",
+        "Maharashtra": "West India",
+        "Goa": "West India",
+        "Madhya Pradesh": "Central India",
+        "Chhattisgarh": "Central India",
+        "Assam": "Northeast India",
+        "Meghalaya": "Northeast India",
+        "Tripura": "Northeast India",
+        "Manipur": "Northeast India",
+        "Nagaland": "Northeast India",
+        "Mizoram": "Northeast India",
+        "Arunachal Pradesh": "Northeast India",
+        "Sikkim": "Northeast India"
+      };
+      
+      region = stateToRegion[userLocation.state] || region;
+    }
+    
+    // Get recommended crops for the region
+    const recommendedCrops = regionalCrops[region] || ["Rice", "Wheat", "Maize", "Pulses"];
+    
+    // Update UI
+    updateCropRecommendationsUI(recommendedCrops, region);
+    
+    return {
+      region,
+      recommendedCrops
+    };
+  } catch (error) {
+    console.error("Error getting crop recommendations:", error);
+    return null;
+  }
+}
+
+// Update crop recommendations UI
+function updateCropRecommendationsUI(crops, region) {
+  // Create crop recommendations section if it doesn't exist
+  let cropSection = document.getElementById('crop-recommendations');
+  if (!cropSection) {
+    cropSection = document.createElement('div');
+    cropSection.id = 'crop-recommendations';
+    cropSection.className = 'prediction-panel';
+    
+    // Add to main area
+    const main = document.querySelector('main');
+    if (main) {
+      main.appendChild(cropSection);
+    }
+  }
+  
+  // Update content
+  cropSection.innerHTML = `
+    <h2>🌱 Recommended Crops for ${region}:</h2>
+    <div class="crop-list">
+      ${crops.map(crop => `<div class="crop-item">${crop}</div>`).join('')}
+    </div>
+    <p class="crop-advice">Based on your location and the current season. For personalized recommendations, please upload soil test data.</p>
+  `;
+}
+
+// Add required styles for location and weather UI
+function addRequiredStyles() {
+  const styleElement = document.createElement('style');
+  styleElement.textContent = `
+    .location-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 5px 0 15px 0;
+      font-size: 18px;
+      color: #FFF;
+    }
+    
+    .location-text {
+      display: flex;
+      align-items: center;
+      background-color: rgba(0, 0, 0, 0.3);
+      padding: 5px;
+      border-radius: 15px;
+    }
+    
+    .location-text svg {
+      margin-right: 5px;
+      color: #FF5722;
+    }
+    
+    .weather-info {
+      margin-top: 15px;
+      width: 90%;
+      max-width: 300px;
+    }
+    
+    .weather-card {
+      display: flex;
+      align-items: center;
+      background-color: rgba(0, 0, 0, 0.3);
+      border-radius: 15px;
+      padding: 10px;
+    }
+    
+    .weather-details {
+      flex: 1;
+    }
+    
+    .temperature {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    
+    .description {
+      text-transform: capitalize;
+      margin: 5px 0;
+    }
+    
+    .extra-info {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+    
+    .crop-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    
+    .crop-item {
+      background-color: rgba(255, 255, 255, 0.2);
+      padding: 5px 15px;
+      border-radius: 15px;
+      font-weight: bold;
+    }
+    
+    .crop-advice {
+      font-size: 14px;
+      font-style: italic;
+      opacity: 0.9;
+    }
+  `;
+  
+  document.head.appendChild(styleElement);
+}
+
+// Function to integrate location information with Kisan GPT
+function integrateLocationWithKisanGPT() {
+  // Modify the getKisanResponse function to include location context
+  const originalGetKisanResponse = window.getKisanResponse;
+  
+  window.getKisanResponse = async function(userQuery, languagePreference) {
+    // Add location context to the prompt
+    let locationContext = "";
+    if (userLocation.locality && userLocation.state) {
+      locationContext = `The farmer is currently located in ${userLocation.locality}, ${userLocation.state}, ${userLocation.country}. `;
+      
+      // If query contains weather-related keywords, add current conditions
+      const weatherKeywords = ["weather", "rain", "temperature", "climate", "mausam", "मौसम", "बारिश", "तापमान"];
+      const hasWeatherQuery = weatherKeywords.some(keyword => 
+        userQuery.toLowerCase().includes(keyword.toLowerCase())
+      );
+      
+      if (hasWeatherQuery && window.currentWeather) {
+        locationContext += `Current weather conditions: ${window.currentWeather.temperature}°C, ${window.currentWeather.description}, humidity ${window.currentWeather.humidity}%. `;
+      }
+    }
+    
+    // Build the complete prompt with location context
+    const completePrompt = `${KISAN_SYSTEM_PROMPT}\n\n${locationContext}Farmer's Query: ${userQuery}\n\nProvide creative, engaging, CONCISE response in: ${languagePreference}`;
+    
+    // Continue with the original function logic but using our updated prompt
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${KISAN_GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: completePrompt }]
+            }
+          ]
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Gemini API responded with status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const geminiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response received.";
+      return geminiResponse;
+    } catch (error) {
+      console.error("Error with Kisan Gemini API:", error);
+      return "Error getting response: " + error.message;
+    }
+  };
+}
+
+// Initialize everything
+document.addEventListener('DOMContentLoaded', function() {
+  // Add required styles
+  addRequiredStyles();
+  
+  // Initialize location services
+  initLocationServices();
+  
+  // Initialize location UI
+  updateLocationUI();
+  
+  // Integrate location with Kisan GPT
+  integrateLocationWithKisanGPT();
+  
+  // Save weather data globally so it can be used in the enhanced Kisan GPT function
+  window.getLocalWeather = async function(lat, lon) {
+    const weatherData = await getLocalWeather(lat, lon);
+    window.currentWeather = weatherData;
+    return weatherData;
+  };
+  
+  console.log("Location services initialized");
+});
+    // KrishiMitra Variables
+    const GEMINI_API_KEY = "AIzaSyAE8XprvLWF2Km9IGYUvl_5pDfo99syJgI";
+    
+    // Supabase configuration
+    const SUPABASE_URL = "https://wrktsadpbrocmuyuztxl.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indya3RzYWRwYnJvY211eXV6dHhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEzNjcwMzMsImV4cCI6MjA1Njk0MzAzM30.EDH66keNiSQB6wvsYJ-STKPQgIBRNj9QG7sAH0Xvm3s";
+    
+    // Initialize Supabase client
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    // Kisan GPT Variables
+    const KISAN_GEMINI_API_KEY = "AIzaSyDaypIzgVMRBPo2go4JwpTvrPKndc_hblY";
+    
+    // Voice settings
+    const WAKE_WORDS = [
+      "किसान जीपीटी", 
+      "किसान gpt", 
+      "कीसान", 
+      "किसान", 
+      "kisan gpt", 
+      "kisan", 
+      "kisaan"
+    ];
+    
+    let isWakeWordDetected = false;
+    let isListening = false;
+    let isProcessing = false;
+    let isSpeaking = false;
+    let continueListening = true;
+    let isPaused = false;
+    
+    // DOM elements for KrishiMitra
+    const predictionElement = document.getElementById("prediction");
+    const suggestionElement = document.getElementById("suggestion");
+    
+    // MODIFIED: Replace single button with two buttons
+    const startSpeakBtn = document.getElementById("startSpeakBtn");
+    const pauseSpeakBtn = document.getElementById("pauseSpeakBtn");
+    
+    // DOM elements for Kisan GPT
+    const kisanModal = document.getElementById("kisanModal");
+    const openKisanButton = document.getElementById("openKisanGPT");
+    const closeModalButton = document.getElementById("closeModal");
+    const queryInput = document.getElementById("query-input");
+    const responseArea = document.getElementById("response-area");
+    const chatHistory = document.getElementById("chat-history");
+    const languageSelect = document.getElementById("language-select");
+    const voiceStatus = document.getElementById("voice-status");
+    const statusIcon = document.getElementById("status-icon");
+    const voiceToggle = document.getElementById("voice-toggle");
+    const toggleLabel = document.querySelector(".toggle-label");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const resumeBtn = document.getElementById("resumeBtn");
+    const askBtn = document.getElementById("askBtn");
+    
+    // Speech synthesis setup for both features
+    const synth = window.speechSynthesis;
+    
+    // KrishiMitra Functions
+    async function fetchFromSupabase() {
+      try {
+        // First check if we can use Supabase
+        if (SUPABASE_URL === "YOUR_SUPABASE_URL" || SUPABASE_KEY === "YOUR_SUPABASE_ANON_KEY") {
+          console.warn("Supabase credentials not set. Using fallback data.");
+          predictionElement.innerText = "Leaf Blight";
+          getGeminiSuggestion("Leaf Blight");
+          return;
+        }
+        
+        // Fetch the most recent entry from your disease_detections table
+        const { data, error } = await supabase
+          .from('disease_detections')
+          .select('prediction')
+          .order('timestamp', { ascending: false })
+          .limit(1);
+        
+        if (error) {
+          console.error("Error fetching from Supabase:", error);
+          predictionElement.innerText = "Error: " + error.message;
+          return;
+        }
+        
+        if (data && data.length > 0) {
+          const prediction = data[0].prediction || "Unknown";
+          predictionElement.innerText = prediction;
+          getGeminiSuggestion(prediction);
+        } else {
+          predictionElement.innerText = "No prediction data found.";
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        predictionElement.innerText = "Error: " + error.message;
+      }
+    }
+    
+    // Function to get suggestions from Gemini
+    async function getGeminiSuggestion(prediction) {
+        const prompt = `मेरे पौधे में ${prediction} बीमारी है। कृपया पहले हिंदी में सुझाव दें,fir wahi गढ़वाली भाषा में इस बीमारी का उपचार और सुझाव दें और अंत में अंग्रेजी में भी लिखें।, give in short aur grape healthy bimaari nahi hai iss case mai to keep it healthy vo bataye`;
+      
+      try {
+        suggestionElement.innerText = "Sending request to Gemini...";
+        startSpeakBtn.disabled = true;  // MODIFIED: Update button reference
+        
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [{ text: prompt }]
+              }
+            ]
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Gemini API responded with status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log("Gemini response:", data); // Debug
+        
+        // Get the raw suggestion text
+        let suggestion = data.candidates?.[0]?.content?.parts?.[0]?.text || "No suggestion received.";
+        
+        // Remove all asterisks from the text
+        suggestion = suggestion.replace(/\*/g, '');
+        
+        suggestionElement.innerText = suggestion;
+        
+        // Enable speak button once we have the suggestion
+        startSpeakBtn.disabled = false;  // MODIFIED: Update button reference
+      } catch (error) {
+        console.error("Error with Gemini API:", error);
+        suggestionElement.innerText = "Error getting suggestions: " + error.message;
+        startSpeakBtn.disabled = true;  // MODIFIED: Update button reference
+      }
+    }
+    
+    function speakDiseaseSuggestion() {
+      // Get the suggestion text
+      const suggestion = suggestionElement.innerText;
+      if (!suggestion || suggestion.includes("Error") || suggestion.includes("Sending request")) {
+        console.log("No valid suggestion to speak");
+        return;
+      }
+
+      if (!synth) {
+        console.log("Speech synthesis not available");
+        alert("आपका ब्राउज़र वॉइस सिंथेसिस का समर्थन नहीं करता है");
+        return;
+      }
+
+      startSpeakBtn.disabled = true;
+
+      startSpeakBtn.style.display = "none";
+      pauseSpeakBtn.style.display = "inline-flex";
+
+      if (synth.speaking) {
+        synth.cancel();
+      }
+
+      const utterance = new SpeechSynthesisUtterance(suggestion);
+      utterance.lang = 'hi-IN';  // Set Hindi language
+      utterance.rate = 1.25;  
+      
+      const voices = synth.getVoices();
+      const hindiVoice = voices.find(voice => voice.lang.includes('hi-IN'));
+      if (hindiVoice) {
+        utterance.voice = hindiVoice;
+        console.log("Using Hindi voice:", hindiVoice.name);
+      } else {
+        console.log("No Hindi voice found, using default voice");
+      }
+      
+      // Event handlers
+      utterance.onstart = function() {
+        console.log("Started speaking suggestion");
+        isSpeaking = true;
+      };
+      
+      utterance.onend = function() {
+        console.log("Finished speaking suggestion");
+        // Reset UI
+        resetSpeakButtons();
+      };
+      
+      utterance.onerror = function(event) {
+        console.log("Speech synthesis error:", event.error);
+        // Reset UI on error
+        resetSpeakButtons();
+      };
+      
+      // Speak the suggestion
+      synth.speak(utterance);
+    }
+
+function pauseSpeaking() {
+  if (synth.speaking) {
+    if (synth.paused) {
+      // If already paused, resume speaking
+      synth.resume();
+      pauseSpeakBtn.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="6" y="4" width="4" height="16"></rect>
+          <rect x="14" y="4" width="4" height="16"></rect>
+        </svg>
+        रोकें (Pause)
+      `;
+    } else {
+      synth.pause();
+      pauseSpeakBtn.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        जारी रखें (Resume)
+      `;
+    }
+  } else {
+    resetSpeakButtons();
+  }
+}
+
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden' && synth.speaking) {
+    synth.cancel();
+    resetSpeakButtons();
+  }
+});
+
+    function resetSpeakButtons() {
+      startSpeakBtn.disabled = false;
+      startSpeakBtn.style.display = "inline-flex";
+      pauseSpeakBtn.style.display = "none";
+      isSpeaking = false;
+    }
+
+    startSpeakBtn.addEventListener('click', speakDiseaseSuggestion);
+    pauseSpeakBtn.addEventListener('click', pauseSpeaking);
+
+    window.addEventListener('beforeunload', function() {
+      if (synth.speaking) {
+        synth.cancel();
+      }
+    });
+
+    const KISAN_SYSTEM_PROMPT = `
+    You are Kisan GPT, an engaging and creative agricultural assistant for Indian farmers.
+    Your expertise includes:
+    - Crop recommendations based on soil, climate, and region
+    - Pest and disease management with natural and chemical options
+    - Weather interpretation for agricultural decisions
+    - Sustainable farming practices and innovative techniques
+    - Market trends and pricing information with actionable insights
+    - Government schemes and subsidies for farmers
+
+    IMPORTANT GUIDELINES:
+    1. Provide VERY CONCISE responses - limit to 1-3 short lines maximum
+    2. Use storytelling and relatable examples when appropriate
+    3. Include practical tips farmers can implement immediately
+    4. Be conversational and warm, like talking to a trusted friend
+    5. Balance tradition with new approaches
+    6. Occasionally include a relevant rural proverb or saying
+    7. Always prioritize sustainable farming methods when possible
+    8. NEVER use asterisks in your responses
+    9. Keep responses brief, practical and actionable
+    10. Respond quickly with emphasis on speed
+
+    MOST IMPORTANT: Provide responses a farmer can use today, with clear actions they can take.
+    `;
+
+    async function getKisanResponse(userQuery, languagePreference) {
+      try {
+        const completePrompt = `${KISAN_SYSTEM_PROMPT}\n\nFarmer's Query: ${userQuery}\n\nProvide creative, engaging, CONCISE response in: ${languagePreference}`;
+        
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${KISAN_GEMINI_API_KEY}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [{ text: completePrompt }]
+              }
+            ]
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Gemini API responded with status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const geminiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response received.";
+        return geminiResponse;
+      } catch (error) {
+        console.error("Error with Kisan Gemini API:", error);
+        return "Error getting response: " + error.message;
+      }
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let wakeWordRecognition;
+    let commandRecognition;
+    
+    function initializeVoiceRecognition() {
+      if (SpeechRecognition) {
+
+        wakeWordRecognition = new SpeechRecognition();
+        wakeWordRecognition.continuous = true;
+        wakeWordRecognition.interimResults = true;
+        wakeWordRecognition.maxAlternatives = 5;  
+        wakeWordRecognition.lang = 'hi-IN';
+        commandRecognition = new SpeechRecognition();
+
+        commandRecognition.continuous = false;
+        commandRecognition.interimResults = true;
+
+        commandRecognition.lang = 'hi-IN';
+
+        wakeWordRecognition.onstart = () => {
+          console.log("Wake word detection started");
+          statusIcon.className = "status-indicator status-active";
+          voiceStatus.textContent = "वेक वर्ड का इंतज़ार कर रहा हूँ";
+        };
+        
+        wakeWordRecognition.onresult = (event) => {
+          if (isPaused || isProcessing) return;
+          
+          const transcript = Array.from(event.results)
+            .map(result => result[0].transcript.toLowerCase().trim())
+            .join(' ');
+          
+          console.log("Heard (wake detection):", transcript);
+
+          const detected = WAKE_WORDS.some(word => 
+            transcript.includes(word.toLowerCase())
+          );
+          
+          if (detected && !isWakeWordDetected) {
+            console.log("Wake word detected!");
+            isWakeWordDetected = true;
+
+            wakeWordRecognition.stop();
+
+            statusIcon.className = "status-indicator status-listening";
+            voiceStatus.textContent = "आपको सुन रहा हूँ...";
+
+            const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+            audio.play();
+
+            setTimeout(() => {
+              if (!isPaused) {
+                startCommandRecognition();
+              }
+            }, 500);
+          }
+        };
+        wakeWordRecognition.onerror = (event) => {
+          console.error("Wake word recognition error:", event.error);
+          
+          if (event.error === 'no-speech') {
+            if (continueListening && !isPaused && !isWakeWordDetected) {
+              wakeWordRecognition.stop();
+              setTimeout(() => startWakeWordRecognition(), 300);
+            }
+          } else if (event.error === 'network') {
+            voiceStatus.textContent = "नेटवर्क त्रुटि - पुनः प्रयास करें";
+            setTimeout(() => {
+              if (continueListening && !isPaused) startWakeWordRecognition();
+            }, 3000);
+          }
+        };
+        
+        wakeWordRecognition.onend = () => {
+          console.log("Wake word recognition ended");
+          if (continueListening && !isPaused && !isWakeWordDetected) {
+            setTimeout(() => startWakeWordRecognition(), 300);
+          }
+        };
+        commandRecognition.onstart = () => {
+          console.log("Command recognition started");
+          isListening = true;
+        };
+        
+        commandRecognition.onresult = (event) => {
+          const last = event.results.length - 1;
+          const transcript = event.results[last][0].transcript.trim();
+          
+          console.log("Heard command:", transcript);
+
+          queryInput.value = transcript;
+
+          if (event.results[last].isFinal && transcript.length > 0) {
+            commandRecognition.stop();
+            isListening = false;
+
+            processUserQuery(transcript);
+          }
+        };
+        
+        commandRecognition.onerror = (event) => {
+          console.error("Command recognition error:", event.error);
+          isListening = false;
+
+          resetVoiceState();
+          
+          if (event.error === 'no-speech') {
+            voiceStatus.textContent = "कोई आवाज़ नहीं सुनी - वेक वर्ड का इंतज़ार कर रहा हूँ";
+            startWakeWordRecognition();
+          }
+        };
+        
+        commandRecognition.onend = () => {
+          console.log("Command recognition ended");
+          isListening = false;
+
+          if (!isProcessing) {
+            resetVoiceState();
+          }
+        };
+      } else {
+        console.error("Speech Recognition API not available in this browser");
+        voiceStatus.textContent = "इस ब्राउज़र में वॉइस सुविधा उपलब्ध नहीं है";
+        voiceToggle.checked = false;
+        voiceToggle.disabled = true;
+      }
+    }
+
+    function startWakeWordRecognition() {
+      if (!SpeechRecognition || isPaused) return;
+      
+      try {
+        wakeWordRecognition.start();
+        statusIcon.className = "status-indicator status-active";
+      } catch (error) {
+        console.error("Error starting wake word recognition:", error);
+        setTimeout(() => startWakeWordRecognition(), 1000);
+      }
+    }
+    function startCommandRecognition() {
+      if (!SpeechRecognition || isPaused) return;
+      
+      try {
+        commandRecognition.lang = getLanguageCode(languageSelect.value);
+        commandRecognition.start();
+      } catch (error) {
+        console.error("Error starting command recognition:", error);
+        resetVoiceState();
+      }
+    }
+    function resetVoiceState() {
+      isWakeWordDetected = false;
+      isProcessing = false;
+
+      statusIcon.className = "status-indicator status-active";
+      voiceStatus.textContent = "वेक वर्ड का इंतज़ार कर रहा हूँ";
+
+      if (continueListening && !isPaused) {
+        startWakeWordRecognition();
+      }
+    }
+
+    function getLanguageCode(language) {
+      const languageCodes = {
+        'Hindi': 'hi-IN',
+        'English': 'en-IN',
+        'Garhwali': 'hi-IN',
+        'Punjabi': 'pa-IN',
+        'Tamil': 'ta-IN',
+        'Telugu': 'te-IN',
+        'Marathi': 'mr-IN'
+      };
+      
+      return languageCodes[language] || 'hi-IN';
+    }
+
+    async function processUserQuery(query) {
+      if (!query || query.trim() === "") return;
+      
+      isProcessing = true;
+      statusIcon.className = "status-indicator status-inactive";
+      voiceStatus.textContent = "आपका उत्तर तैयार कर रहा हूँ...";
+      addMessageToChat(query, 'farmer');
+
+      responseArea.textContent = "प्रतिक्रिया मिल रही है...";
+      const language = languageSelect.value;
+      
+      try {
+        const response = await getKisanResponse(query, language);
+        
+        responseArea.textContent = response;
+
+        addMessageToChat(response, 'assistant');
+
+        if (voiceToggle.checked && !isPaused) {
+          speakResponse(response, language);
+        } else {
+          resetVoiceState();
+        }
+      } catch (error) {
+        console.error("Error processing query:", error);
+        responseArea.textContent = "Error: " + error.message;
+        resetVoiceState();
+      }
+    }
+
+    function addMessageToChat(message, sender) {
+      const messageElement = document.createElement('div');
+      messageElement.className = `chat-message ${sender}`;
+      messageElement.textContent = message;
+      chatHistory.appendChild(messageElement);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    function speakResponse(text, language) {
+      if (!synth) {
+        console.log("Speech synthesis not available");
+        resetVoiceState();
+        return;
+      }
+
+      if (synth.speaking) {
+        synth.cancel();
+      }
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = getLanguageCode(language);
+      utterance.rate = 1.2;  
+      const voices = synth.getVoices();
+      const languageCode = getLanguageCode(language);
+      const voice = voices.find(v => v.lang.includes(languageCode.split('-')[0]));
+      
+      if (voice) {
+        utterance.voice = voice;
+      }
+      utterance.onstart = () => {
+        console.log("Started speaking response");
+        isSpeaking = true;
+        statusIcon.className = "status-indicator status-inactive";
+        voiceStatus.textContent = "बोल रहा हूँ...";
+      };
+      
+      utterance.onend = () => {
+        console.log("Finished speaking response");
+        isSpeaking = false;
+        resetVoiceState();
+      };
+      
+      utterance.onerror = (event) => {
+        console.error("Speech synthesis error:", event.error);
+        isSpeaking = false;
+        resetVoiceState();
+      };
+
+      synth.speak(utterance);
+    }
+
+    function toggleVoiceMode() {
+      continueListening = voiceToggle.checked;
+      
+      if (continueListening) {
+        toggleLabel.textContent = "वॉइस मोड चालू है";
+        if (!isPaused) {
+          startWakeWordRecognition();
+        }
+      } else {
+        toggleLabel.textContent = "वॉइस मोड बंद है";
+        if (wakeWordRecognition) {
+          wakeWordRecognition.stop();
+        }
+        if (commandRecognition) {
+          commandRecognition.stop();
+        }
+        statusIcon.className = "status-indicator status-inactive";
+        voiceStatus.textContent = "वॉइस मोड बंद है";
+      }
+    }
+    openKisanButton.addEventListener('click', () => {
+      kisanModal.style.display = "block";
+      if (voiceToggle.checked && !isPaused) {
+        startWakeWordRecognition();
+      }
+    });
+    closeModalButton.addEventListener('click', () => {
+      kisanModal.style.display = "none";
+      if (wakeWordRecognition) {
+        wakeWordRecognition.stop();
+      }
+      if (commandRecognition) {
+        commandRecognition.stop();
+      }
+      if (synth.speaking) {
+        synth.cancel();
+      }
+    });
+    askBtn.addEventListener('click', () => {
+      processUserQuery(queryInput.value);
+    });
+    
+    queryInput.addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        processUserQuery(queryInput.value);
+      }
+    });
+    
+    voiceToggle.addEventListener('change', toggleVoiceMode);
+    pauseBtn.addEventListener('click', () => {
+      isPaused = true;
+      pauseBtn.disabled = true;
+      resumeBtn.disabled = false;
+      
+      if (wakeWordRecognition) {
+        wakeWordRecognition.stop();
+      }
+      if (commandRecognition) {
+        commandRecognition.stop();
+      }
+      
+      voiceStatus.textContent = "वॉइस सुविधा रोकी गई है";
+      statusIcon.className = "status-indicator status-inactive";
+    });
+    
+    resumeBtn.addEventListener('click', () => {
+      isPaused = false;
+      pauseBtn.disabled = false;
+      resumeBtn.disabled = true;
+      
+      // Restart wake word detection
+      if (voiceToggle.checked) {
+        startWakeWordRecognition();
+      }
+    });
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeVoiceRecognition();
+      
+      fetchFromSupabase();
+      
+      if (synth && speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = () => {
+          console.log("Available voices:", synth.getVoices());
+        };
+      }
+
+      window.addEventListener('click', (event) => {
+        if (event.target === kisanModal) {
+          kisanModal.style.display = "none";
+          // Stop voice recognition
+          if (wakeWordRecognition) {
+            wakeWordRecognition.stop();
+          }
+          if (commandRecognition) {
+            commandRecognition.stop();
+          }
+          // Cancel any ongoing speech
+          if (synth.speaking) {
+            synth.cancel();
+          }
+        }
+      });
+    });
+
+    // Add script for soil moisture functionality
+   document.addEventListener('DOMContentLoaded', function() {
+  // Get DOM elements
+  const openSoilMoistureBtn = document.getElementById('openSoilMoistureBtn');
+  const moistureModal = document.getElementById('moistureModal');
+  const closeMoistureModal = document.getElementById('closeMoistureModal');
+  const moistureContent = document.getElementById('moistureContent');
+  const moistureLoading = document.getElementById('moistureLoading');
+  const moistureAlert = document.getElementById('moistureAlert');
+  
+  // Event listeners for opening and closing the moisture modal
+  openSoilMoistureBtn.addEventListener('click', function() {
+    moistureModal.style.display = 'block';
+    loadMoistureData();
+  });
+  
+  closeMoistureModal.addEventListener('click', function() {
+    moistureModal.style.display = 'none';
+  });
+  
+  // Close modal when clicking outside
+  window.addEventListener('click', function(event) {
+    if (event.target === moistureModal) {
+      moistureModal.style.display = 'none';
+    }
+  });
+  
+  // Function to convert raw sensor value (0-1025) to percentage (0-100%)
+  function convertToPercentage(rawValue) {
+    // Convert raw value (0-1025) to percentage (0-100)
+    // Note: Inverted the percentage because higher sensor values often mean lower moisture
+    // Adjust this formula based on your specific sensor behavior
+    return Math.max(0, Math.min(100, (rawValue / 1025 * 100))).toFixed(1);
+  }
+  
+  // Function to load moisture data from Supabase
+  async function loadMoistureData() {
+    // Show loading spinner
+    moistureLoading.style.display = 'flex';
+    moistureAlert.style.display = 'none';
+    
+    try {
+      // Fetch moisture data from Supabase
+      const { data, error } = await supabase
+        .from('current_moisture_level')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (error) throw error;
+      
+      // Hide loading spinner
+      moistureLoading.style.display = 'none';
+      
+      // Process and display the data
+      if (data && data.length > 0) {
+        // Convert raw sensor values to percentages
+        const convertedData = data.map(item => ({
+          ...item,
+          level_percentage: convertToPercentage(item.level),
+          raw_level: item.level // Keep the original value for reference
+        }));
+        
+        displayMoistureData(convertedData);
+      } else {
+        moistureContent.innerHTML = `
+          <div class="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 15px; opacity: 0.6;">
+              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" stroke-width="1"></path>
+            </svg>
+            <p>कोई मिट्टी की नमी का डेटा नहीं मिला।</p>
+            <p>No soil moisture data found.</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      console.error('Error fetching moisture data:', error);
+      
+      // Hide loading spinner and show error
+      moistureLoading.style.display = 'none';
+      moistureAlert.style.display = 'block';
+      moistureAlert.textContent = `Error: ${error.message || 'Failed to load moisture data'}`;
+    }
+  }
+  
+  // Function to display moisture data in a nicely formatted way
+  function displayMoistureData(data) {
+    // Calculate average moisture level using the converted percentage values
+    const avgLevel = data.reduce((sum, item) => sum + parseFloat(item.level_percentage), 0) / data.length;
+    const latestReading = data[0];
+    
+    // Create moisture level interpretation
+    let moistureStatus, moistureAdvice;
+    if (avgLevel < 20) {
+      moistureStatus = "बहुत सूखी (Very Dry)";
+      moistureAdvice = "तुरंत सिंचाई की आवश्यकता है। फसल को पानी दें।";
+    } else if (avgLevel < 40) {
+      moistureStatus = "सूखी (Dry)";
+      moistureAdvice = "सिंचाई की आवश्यकता है। जल्द ही फसल को पानी दें।";
+    } else if (avgLevel < 60) {
+      moistureStatus = "संतुलित (Balanced)";
+      moistureAdvice = "मिट्टी की नमी सही है। नियमित निगरानी जारी रखें।";
+    } else if (avgLevel < 80) {
+      moistureStatus = "नम (Moist)";
+      moistureAdvice = "अभी सिंचाई की आवश्यकता नहीं है। मिट्टी को सूखने दें।";
+    } else {
+      moistureStatus = "बहुत नम (Very Wet)";
+      moistureAdvice = "अतिरिक्त पानी का निकास सुनिश्चित करें। जलभराव से बचें।";
+    }
+    
+    // Format date for display
+    const formatDate = (timestamp) => {
+      const date = new Date(timestamp);
+      return date.toLocaleString('hi-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+    
+    // Build HTML content
+    let html = `
+      <div class="moisture-info">
+        <h3>वर्तमान स्थिति (Current Status)</h3>
+        <p><strong>औसत नमी स्तर (Average Moisture Level):</strong> ${avgLevel.toFixed(1)}%</p>
+        <p><strong>स्थिति (Status):</strong> ${moistureStatus}</p>
+        <p><strong>सलाह (Advice):</strong> ${moistureAdvice}</p>
+        
+        <div class="moisture-level-indicator">
+          <div class="moisture-marker" style="left: ${avgLevel}%;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 12px;">
+          <span>सूखा (Dry) 0%</span>
+          <span>50%</span>
+          <span>नम (Wet) 100%</span>
+        </div>
+      </div>
+      
+      <h3>पिछले रीडिंग (Recent Readings)</h3>
+      <table class="moisture-table">
+        <thead>
+          <tr>
+            <th>दिनांक (Date)</th>
+            <th>फसल (Crop)</th>
+            <th>नमी स्तर (Moisture %)</th>
+            <th>कच्चा मूल्य (Raw Value)</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    // Add rows for each data point
+    data.forEach(item => {
+      html += `
+        <tr>
+          <td>${formatDate(item.created_at)}</td>
+          <td>${item.species || 'अज्ञात (Unknown)'}</td>
+          <td>${item.level_percentage}%</td>
+          <td>${item.raw_level}</td>
+        </tr>
+      `;
+    });
+    
+    html += `
+        </tbody>
+      </table>
+    `;
+    
+    // Insert the content
+    moistureContent.innerHTML = html;
+  }
+});
+  </script>
+</body>
+</html>
