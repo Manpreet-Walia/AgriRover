@@ -30,7 +30,7 @@
 ## Tech Stack
 
 - **Hardware:** Raspberry Pi, Camera Module, Soil & pH Sensors, GPS, Motor Driver, Filtration System  
-- **Software:** Python, OpenCV, Flask/Django (for Web App), SQLite/Cloud DB  
+- **Software:** Python, OpenCV, Flask, Cloud DB  
 - **Frontend:** HTML, CSS, JavaScript
 
 ---
